@@ -1021,17 +1021,28 @@ def make_forest(
     return tuple(result)
 
 
+#get_leaves_from_tree will return an array of dims
+# number_of_leaves x maximum_number_of_rowindices_per_leaf, where
+# arr[i,j] is the jth row index falling in leaf i, or is -1 if
+# there was no jth rowidx in leaf i.
 @numba.njit(nogil=True)
 def get_leaves_from_tree(tree):
     n_leaves = 0
+    #figure out the total number of leaves in the tree, for the
+    # purpose of allocating an array that stores the return info.
     for i in range(len(tree.children)):
+        #for the leaf nodes, both the 'children' are -1.
         if tree.children[i][0] == -1 and tree.children[i][1] == -1:
             n_leaves += 1
 
+    #Allocate the array that will store the return info, fill with -1
     result = -1 * np.ones((n_leaves, tree.leaf_size), dtype=np.int32)
     leaf_index = 0
     for i in range(len(tree.indices)):
+        #for the leaf nodes, both the 'children' are -1
         if tree.children[i][0] == -1 or tree.children[i][1] == -1:
+            #tree.indices[i] stores the row indices falling in leaf i
+            # (if i is actually a leaf node)
             leaf_size = tree.indices[i].shape[0]
             result[leaf_index, :leaf_size] = tree.indices[i]
             leaf_index += 1
@@ -1047,6 +1058,10 @@ def rptree_leaf_array_parallel(rp_forest):
     return result
 
 
+#returns arr s.t. arr[i,j] is the jth rowidx falling in
+# the ith leaf across all the rp trees (the leaves are
+# concatenated together across all trees). Is -1 if
+# there is no jth row index in the leaf.
 def rptree_leaf_array(rp_forest):
     if len(rp_forest) > 0:
         return np.vstack(rptree_leaf_array_parallel(rp_forest))
