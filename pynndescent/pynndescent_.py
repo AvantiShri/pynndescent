@@ -824,6 +824,7 @@ class NNDescent(object):
         if self.tree_init:
             if verbose:
                 print(ts(), "Building RP forest with", str(n_trees), "trees")
+            #make_forest returns a list of random projection forests (type FlatTree)
             self._rp_forest = make_forest(
                 data,
                 n_neighbors,
@@ -834,6 +835,10 @@ class NNDescent(object):
                 self.n_jobs,
                 self._angular_trees,
             )
+            #leafarray[i,j] is the jth rowidx falling in
+            # the ith leaf across all the rp trees (the leaves are
+            # concatenated together across all trees). Is -1 if
+            # there is no jth row index in the leaf.
             leaf_array = rptree_leaf_array(self._rp_forest)
         else:
             self._rp_forest = None
