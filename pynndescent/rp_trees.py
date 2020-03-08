@@ -545,7 +545,43 @@ def make_angular_tree(
     rng_state,
     leaf_size=30,
 ):
+    #in the first iteration (when make_angular_tree is called from
+    # make_dense_tree), the following are true:
+    # indices = np.arange(data.shape[0]).astype(np.int32)
+    # hyperplanes, offsets, children and point_indices are all
+    # empty lists.
+    #in first iteration, indices.shape[0] would equal data.shape[0]
+    # so this would be true. But it may become false when recursing.
     if indices.shape[0] > leaf_size:
+
+        #Docs for 'angular_random_projection_split':
+        # Given a set of ``graph_indices`` for graph_data points from ``graph_data``, create
+        # a random hyperplane to split the graph_data, returning two arrays graph_indices
+        # that fall on either side of the hyperplane. This is the basis for a
+        # random projection tree, which simply uses this splitting recursively.
+        #This particular split uses cosine distance to determine the hyperplane
+        # and which side each graph_data sample falls on.
+        #Parameters
+        # data: array of shape (n_samples, n_features)
+        # The original graph_data to be split
+        # indices: array of shape (tree_node_size,)
+        # The graph_indices of the elements in the ``graph_data`` array that are to
+        # be split in the current operation.
+        # rng_state: array of int64, shape (3,)
+        # The internal state of the rng
+        #Returns
+        #-------
+        #indices_left: array
+        # The elements of ``graph_indices`` that fall on the "left" side of the
+        # random hyperplane.
+        #indices_right: array
+        # The elements of ``graph_indices`` that fall on the "left" side of the
+        # random hyperplane.
+        #Undocumented return values:
+        # hyperplane: presumably the vector used to make the split.
+        # offset: from the code, looks like this is always set to 0. Presumably
+        # matters more in the context of euclidean but I guess for angular it's
+        # always zero.
         (
             left_indices,
             right_indices,
@@ -553,6 +589,8 @@ def make_angular_tree(
             offset,
         ) = angular_random_projection_split(data, indices, rng_state)
 
+        #hyperplanes, offsets, etc. are mutable.
+        # Get extended in the recursion.
         make_angular_tree(
             data,
             left_indices,
@@ -563,9 +601,21 @@ def make_angular_tree(
             rng_state,
             leaf_size,
         )
-
+        
+        #Every call to make_angular_tree appends ONE entry
+        # to point_indices. For internal nodes, a -1 is appended,
+        # and for the leaf nodes, the array of row indices
+        # corresponding to the leaves is appended. 
+        #len(point_indices) thus would be the number of child
+        # nodes (including leaves) created thus far in the tree
+        # creation. len(point_indices)-1 can be thought of
+        # as a node id for the left node, at this point in the code.
+        #Is used to record what the children of each node are, and
+        # also to be able to index into "hyperplanes" to figure out
+        # what the splitting hyperplane was.
         left_node_num = len(point_indices) - 1
 
+        #Create the right-branch of the node.
         make_angular_tree(
             data,
             right_indices,
@@ -577,13 +627,19 @@ def make_angular_tree(
             leaf_size,
         )
 
+        #At this point in the code, len(point_indices)-1 is the
+        # node id for the right node.
         right_node_num = len(point_indices) - 1
 
+        #Record the splitting hyperplane and the node ids of the child nodes.
+        # Also increment point_indices so node ids can be easily recorded.
         hyperplanes.append(hyperplane)
         offsets.append(offset)
         children.append((np.int32(left_node_num), np.int32(right_node_num)))
         point_indices.append(np.array([-1], dtype=np.int32))
     else:
+        #In the case where there is no splitting - just creation of the
+        # leaf nodes - put in dummy values for the hyperplane/offset/children.
         hyperplanes.append(np.array([-1.0], dtype=np.float32))
         offsets.append(-np.inf)
         children.append((np.int32(-1), np.int32(-1)))
