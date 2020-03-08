@@ -14,6 +14,8 @@
     :target: https://lgtm.com/projects/g/lmcinnes/pynndescent/context:python
     :alt: LGTM Grade
 
+(Forked for the sake of adding comments as I parse through the code)
+
 ===========
 PyNNDescent
 ===========
