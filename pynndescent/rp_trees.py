@@ -819,6 +819,12 @@ def make_dense_tree(data, rng_state, leaf_size=30, angular=False):
         )
 
     # print("Completed a tree")
+    #hyperplanes[i] is the hyperplane used to split at node id i
+    # offsets would always be 0 for an angular tree.
+    #children[i] gives the node ids of the children of node id i
+    #point_indices[i] is -1 if i is an internal node, and an array of
+    # row ids (into data) corresponding to leaves if at the base of the tree
+    #leaf_size is provided in the call to the function.
     result = FlatTree(hyperplanes, offsets, children, point_indices, leaf_size)
     # print("Tree type is:", numba.typeof(result))
     return result
